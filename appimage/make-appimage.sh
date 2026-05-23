@@ -4,14 +4,12 @@ TARGET=${1:-all}
 
 if [[ "${TARGET}" == "freedv-flex" ]]; then
     export APPNAME="FreeDV-FlexRadio"
-    export APPEXEC=../build_linux/src/integrations/flex/freedv-flex
+    export APPEXEC=../build_linux/src/flex/freedv-flex
     export APPRUN="AppRun-FlexRadio.sh"
-    export RADE_SRC="rade_integ_src"
 elif [[ "${TARGET}" == "freedv-ka9q" ]]; then
     export APPNAME="FreeDV-KA9Q"
-    export APPEXEC=../build_linux/src/integrations/ka9q/freedv-ka9q
+    export APPEXEC=../build_linux/src/ka9q/freedv-ka9q
     export APPRUN="AppRun-KA9Q.sh"
-    export RADE_SRC="rade_integ_src"
 fi
 
 DESKTOP_FILE="$APPNAME.desktop"
