@@ -136,7 +136,7 @@ jobs:
 
     - name: Generate waveform file
       shell: bash
-      working-directory: ${{github.workspace}}/src/integrations/flex
+      working-directory: ${{github.workspace}}/src/flex
       if: ${{ matrix.target == 'freedv-flex' && matrix.os == 'ubuntu-22.04-arm' }}
       run: |
         cp ${{github.workspace}}/appimage/${{ steps.appimage-filename.outputs.APPIMAGE_FILENAME }} FreeDV-FlexRadio.AppImage
@@ -148,7 +148,8 @@ jobs:
     - name: Calculate waveform filename
       shell: bash
       id: flex-waveform-filename
-      working-directory: ${{github.workspace}}/src/integrations/flex
+      working-directory: ${{github.workspace}}/src/flex
+      if: ${{ matrix.target == 'freedv-flex' && matrix.os == 'ubuntu-22.04-arm' }}
       run: |
           echo "FLEX_WAVEFORM_FILENAME=$(echo -n freedv-waveform*.tar.gz)" >> "$GITHUB_OUTPUT"
 
@@ -164,6 +165,6 @@ jobs:
       if: ${{ matrix.target == 'freedv-flex' && matrix.os == 'ubuntu-22.04-arm' }}
       with:
         name: ${{ steps.flex-waveform-filename.outputs.FLEX_WAVEFORM_FILENAME }}
-        path: ${{github.workspace}}/src/integrations/flex/${{ steps.flex-waveform-filename.outputs.FLEX_WAVEFORM_FILENAME }}
+        path: ${{github.workspace}}/src/flex/${{ steps.flex-waveform-filename.outputs.FLEX_WAVEFORM_FILENAME }}
         archive: false
 
