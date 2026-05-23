@@ -12,8 +12,6 @@ Run `cmake` on the top-level CMakeLists.txt as usual (see top-level README.md), 
 $ make -j$(nproc) freedv-ka9q
 ```
 
-*Note: freedv-ka9q is not built by default when running "make" or using `build_linux.sh`.*
-
 ## Running
 
 Running without any arguments will use a default of 8000 Hz for input samples and 16000 Hz for output samples.
