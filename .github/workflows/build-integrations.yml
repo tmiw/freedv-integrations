@@ -83,15 +83,6 @@ jobs:
            sudo sed 's/load-module module-suspend-on-idle/#load-module module-suspend-on-idle/' /etc/pulse/default.pa -i
            systemctl --user --now enable pulseaudio.service pulseaudio.socket
 
-    - name: Install Python required modules
-      shell: bash
-      working-directory: ${{github.workspace}}
-      run: |
-          python3 -m venv rade-venv
-          . ./rade-venv/bin/activate
-          pip3 install torch==${{ env.TORCH_RELEASE }} --index-url https://download.pytorch.org/whl/cpu
-          pip3 install matplotlib
-
     - name: Set up Docker Buildx
       if: ${{ matrix.target == 'freedv-flex' }}
       uses: docker/setup-buildx-action@v4
