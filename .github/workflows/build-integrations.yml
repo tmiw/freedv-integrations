@@ -91,7 +91,6 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}
       run: |
-          . ./rade-venv/bin/activate
           mkdir build_linux
           cd build_linux
           CC=clang-21 CXX=clang++-21 cmake -DENABLE_LTO=1 -DSTATIC_LIBGCC=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_NATIVE_AUDIO=1 .. 
