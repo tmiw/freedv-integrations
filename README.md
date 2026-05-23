@@ -25,7 +25,3 @@ $ cd build
 $ cmake ..
 $ make
 ```
-
-## AppImage generation:
-
-TBD
