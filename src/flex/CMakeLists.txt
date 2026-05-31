@@ -5,7 +5,7 @@ add_executable(freedv-flex
     FlexTcpTask.cpp)
 
 target_compile_options(freedv-flex PRIVATE ${WARNINGS_AS_ERRORS_FLAGS} -Wno-missing-field-initializers)
-target_link_libraries(freedv-flex PRIVATE git_version fdv_audio_pipeline fdv_reporting fdv_util fdv_integ_common r8brain)
+target_link_libraries(freedv-flex PRIVATE git_version fdv_audio_pipeline fdv_reporting fdv_util fdv_integ_common samplerate)
 
 # If on Linux, force static libstdc++. This is to prevent versioning
 # problems when using AppImages.

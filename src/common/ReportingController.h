@@ -40,6 +40,7 @@
 #include "ThreadedTimer.h"
 #include "FreeDVReporter.h"
 #include "pskreporter.h"
+#include "UdpReporter.h"
 
 class ReportingController : public ThreadedObject
 {
@@ -63,6 +64,7 @@ private:
     ThreadedTimer pskReporterSendTimer_;
     FreeDVReporter* freedvReporterConnection_;
     PskReporter* pskReporterConnection_;
+    UdpReporter* udpReporterConnection_;
 
     std::string currentGridSquare_;
     std::string radioCallsign_;
