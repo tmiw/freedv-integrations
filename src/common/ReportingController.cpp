@@ -222,7 +222,7 @@ void ReportingController::reportCallsign(std::string const& callsign, char snr)
         {
             pskReporterConnection_->addReceiveRecord(callsign, MODE_STRING, currentFreq_, snr);
         }
-        if (udpReporterConnection_ != nullptr)
+        if (udpReporterConnection_ != nullptr && callsign.size() > 0)
         {
             udpReporterConnection_->addReceiveRecord(callsign, MODE_STRING, currentFreq_, snr);
         }
