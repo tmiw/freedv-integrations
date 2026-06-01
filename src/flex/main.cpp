@@ -69,7 +69,7 @@ extern "C"
 using namespace std::chrono_literals;
 
 std::atomic<bool> g_tx;
-bool endingTx;
+std::atomic<bool> endingTx;
 bool exitingApplication;
 int spotTimeoutSeconds = 600; // 10 minute default
 
@@ -412,12 +412,12 @@ int main(int argc, char** argv)
     tcpTask.setWaveformTransmitFn([&](FlexTcpTask&, FlexTcpTask::TxState tx, void*) {
         if (tx == FlexTcpTask::ENDING_TX)
         {
-            endingTx = true; // EOO should then queue out
+            endingTx.store(true, std::memory_order_release); // EOO should then queue out
             vitaTask.setEndingTx(true);
         }
         else
         {
-            endingTx = false;
+            endingTx.store(false, std::memory_order_release);
             bool txFlag = tx == FlexTcpTask::TRANSMITTING;
             vitaTask.setEndingTx(false);
             vitaTask.setTransmit(txFlag);

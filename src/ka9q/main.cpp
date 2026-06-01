@@ -82,7 +82,7 @@ constexpr int DEFAULT_OUTPUT_SAMPLE_RATE = 16000;
 using namespace std::chrono_literals;
 
 std::atomic<bool> g_tx;
-bool endingTx;
+std::atomic<bool> endingTx;
 
 std::string utRxFeatureFile;
 std::string utTxFeatureFile;

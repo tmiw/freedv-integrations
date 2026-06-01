@@ -64,6 +64,7 @@ ReportingController::ReportingController(std::string softwareName, bool rxOnly, 
     }, true)
     , freedvReporterConnection_(nullptr)
     , pskReporterConnection_(nullptr)
+    , udpReporterConnection_(nullptr)
     , currentGridSquare_(SOFTWARE_GRID_SQUARE)
     , radioCallsign_("")
     , userHidden_(true)
@@ -158,12 +159,22 @@ void ReportingController::updateReporterState_()
         pskReporterConnection_ = nullptr;
     }
 
+    if (udpReporterConnection_ != nullptr)
+    {
+        log_info("Stopping UDP broadcast of received callsigns");
+        delete udpReporterConnection_;
+        udpReporterConnection_ = nullptr;
+    }
+
     if (freedvReporterConnection_ == nullptr && !userHidden_ && !reportingDisabled_)
     {
         log_info("Connecting to FreeDV Reporter (callsign = %s, grid square = %s, version = %s)", radioCallsign_.c_str(), currentGridSquare_.c_str(), getVersionString_().c_str());
         freedvReporterConnection_ = new FreeDVReporter("", radioCallsign_, currentGridSquare_, getVersionString_(), rxOnly_, true);
         freedvReporterConnection_->connect();
         freedvReporterConnection_->updateMessage(userMessage_);
+
+        log_info("Starting UDP broadcast of received callsigns");
+        udpReporterConnection_ = new UdpReporter("224.0.0.1", 7177);
     }
 
     if (pskReporterConnection_ == nullptr && currentGridSquare_ != SOFTWARE_GRID_SQUARE && !reportingDisabled_)
@@ -188,6 +199,12 @@ void ReportingController::updateRadioCallsign(std::string const& newCallsign)
                 delete freedvReporterConnection_;
                 freedvReporterConnection_ = nullptr;
             }
+            if (udpReporterConnection_ != nullptr)
+            {
+                log_info("Stopping UDP broadcast of received callsigns");
+                delete udpReporterConnection_;
+                udpReporterConnection_ = nullptr;
+            } 
             updateReporterState_();
         }
     });
@@ -204,6 +221,10 @@ void ReportingController::reportCallsign(std::string const& callsign, char snr)
         if (pskReporterConnection_ != nullptr)
         {
             pskReporterConnection_->addReceiveRecord(callsign, MODE_STRING, currentFreq_, snr);
+        }
+        if (udpReporterConnection_ != nullptr && callsign.size() > 0)
+        {
+            udpReporterConnection_->addReceiveRecord(callsign, MODE_STRING, currentFreq_, snr);
         }
     });
 }
@@ -223,6 +244,12 @@ void ReportingController::updateRadioGridSquare(std::string const& newGridSquare
                 delete freedvReporterConnection_;
                 freedvReporterConnection_ = nullptr;
             }
+            if (udpReporterConnection_ != nullptr)
+            {
+                log_info("Stopping UDP broadcast of received callsigns");
+                delete udpReporterConnection_;
+                udpReporterConnection_ = nullptr;
+            } 
             updateReporterState_();
         }
     });
