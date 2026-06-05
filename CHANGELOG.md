@@ -3,7 +3,7 @@
 ## v2.4.0 TBD 2026
 
 1. Bugfixes:
-    * TBD
+    * Revert r8brain audio sampler for further audio quality improvement. (PR #3)
 2. Feature enhancements:
     * Enable UDP broadcast of received callsigns if FreeDV Reporter is enabled. (PR #1)
 
