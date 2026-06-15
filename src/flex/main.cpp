@@ -388,6 +388,8 @@ int main(int argc, char** argv)
         rade_tx_set_eoo_bits(radeObj, eooSyms);
 
         reportController.updateRadioCallsign(callsign);
+
+        delete[] eooSyms; // RADE stores the EOO itself so no need to keep it around
     }, nullptr);
     tcpTask.setWaveformGridSquareUpdateFn([&](FlexTcpTask&, std::string const& gridSquare, void*) {
         if (stationGridSquare == "")
@@ -471,5 +473,9 @@ int main(int argc, char** argv)
     // Clean up RADE
     rade_close(radeObj);
     rade_finalize();
+    rade_text_destroy(radeTextPtr);
+
+    // Clean up Opus
+    lpcnet_encoder_destroy(lpcnetEncState);
     return 0;
 }
