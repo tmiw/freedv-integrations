@@ -1,4 +1,4 @@
 [submodule "src/backend"]
 	path = src/backend
 	url = https://github.com/tmiw/freedv-backend
-	branch = ldpc_added_tests
+	branch = main
