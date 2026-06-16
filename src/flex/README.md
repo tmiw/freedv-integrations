@@ -7,7 +7,7 @@ hardware (and 6000 series when run on a separate Raspberry Pi).
 
 ### Flex 8000/Aurora series
 
-1. Download the latest waveform file from the [releases page](https://github.com/drowe67/freedv-gui/releases). The file to download begins with the name "freedv-waveform" and ends in "tar.gz". (*Note: do not decompress this file!*)
+1. Download the latest waveform file from the [releases page](https://github.com/tmiw/freedv-integrations/releases). The file to download begins with the name "freedv-waveform" and ends in "tar.gz". (*Note: do not decompress this file!*)
 2. Open SmartSDR, connect to your radio and go to Tools->Waveforms. You will see something similar to the following:
 
 ![Waveform config window](./doc/flexradio-waveform-config.png)
@@ -19,7 +19,7 @@ hardware (and 6000 series when run on a separate Raspberry Pi).
 
 Due to the computational requirements of RADEV1, it's not possible to run the FreeDV waveform on the radio itself. Instead, you can run a separate Linux AppImage on a device such as a Raspberry Pi 4:
 
-1. Download the latest waveform AppImage from the [releases page](https://github.com/drowe67/freedv-gui/releases). The file to download begins with the name "FreeDV-Flex" and ends in "AppImage". (*Note: there are two versions. The one with "aarch64" in the name is intended for devices such as the Raspberry Pi, while the "x86_64" version is for regular PCs.*)
+1. Download the latest waveform AppImage from the [releases page](https://github.com/tmiw/freedv-integrations/releases). The file to download begins with the name "FreeDV-Flex" and ends in "AppImage". (*Note: there are two versions. The one with "aarch64" in the name is intended for devices such as the Raspberry Pi, while the "x86_64" version is for regular PCs.*)
 2. From a terminal window, run `chmod +x ./FreeDV-Flex*.AppImage` to make the file executable.
 3. Run the AppImage file that was downloaded. It's recommended to run this in a separate screen or similar session to prevent it from being killed when logging out of e.g. SSH.
 
@@ -60,7 +60,7 @@ Operation in SmartSDR is similar to operating in regular voice modes with a few 
 ### Full list of options
 
 ```
-13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:96: Usage: src/integrations/flex/freedv-flex [-d|--disable-reporting] [-l|--reporting-locator LOCATOR] [-m|--reporting-message MESSAGE] [-r|--rx-volume DB] [-t|--spot-timeout SEC] [-h|--help] [-v|--version]
+13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:96: Usage: src/flex/freedv-flex [-d|--disable-reporting] [-l|--reporting-locator LOCATOR] [-m|--reporting-message MESSAGE] [-r|--rx-volume DB] [-t|--spot-timeout SEC] [-h|--help] [-v|--version]
 13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:97:     -d|--disable-reporting: Disables FreeDV Reporter reporting.
 13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:98:     -l|--reporting-locator: Overrides grid square/locator from radio for FreeDV Reporter reporting.
 13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:99:     -m|--reporting-message: Sets reporting message for FreeDV Reporter reporting.
@@ -68,6 +68,18 @@ Operation in SmartSDR is similar to operating in regular voice modes with a few 
 13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:101:     -t|--spot-timeout: Timeout for reported spots (default: 600s or 10min).
 13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:102:     -h|--help: This help message.
 13:42:10 INFO /home/mooneer/freedv-gui/src/integrations/flex/main.cpp:103:     -v|--version: Prints the application version and exits.
+```
+
+Note that some of the above options can also be provided via environment variables:
+
+| Option                | Environment Variable  |
+|-----------------------|-----------------------|
+| `--reporting-message` | `REPORTING_MESSAGE`   |
+
+For example:
+
+```
+REPORTING_MESSAGE="Flex 8400, San Diego, CA" ./src/flex/freedv-flex
 ```
 
 ## Building the waveform

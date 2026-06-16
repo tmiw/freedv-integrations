@@ -130,6 +130,14 @@ int main(int argc, char** argv)
     // Print version
     log_info("%s version %s", SOFTWARE_NAME, GetFreeDVVersion().c_str());
     
+    // Check environment variables
+    auto reportingMessageEnv = getenv("REPORTING_MESSAGE"); // NOLINT
+    if (reportingMessageEnv != nullptr)
+    {
+        log_info("Using FreeDV Reporter message '%s' from environment", reportingMessageEnv);
+        stationUserMessage = reportingMessageEnv;
+    }
+
     // Check command line options
     static struct option longOptions[] = {
         {"disable-reporting",     no_argument,       0,  'd' },
