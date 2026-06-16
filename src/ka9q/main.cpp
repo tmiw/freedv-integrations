@@ -402,8 +402,13 @@ int main(int argc, char** argv)
 
     rxThread.stop();
     
-    // TBD - the below isn't called since we're in an infinite loop above.
+    // Clean up RADE
     rade_close(radeObj);
     rade_finalize();
+    rade_text_destroy(radeTextPtr);
+
+    // Clean up Opus
+    lpcnet_encoder_destroy(lpcnetEncState);
+
     return 0;
 }

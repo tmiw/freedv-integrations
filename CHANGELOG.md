@@ -4,6 +4,8 @@
 
 1. Bugfixes:
     * Revert r8brain audio sampler for further audio quality improvement. (PR #3)
+    * Fix memory leaks in integrations. (PR #4)
+    * Integrate improvements to EOO/callsign reporting. (PR #4)
 2. Feature enhancements:
     * Enable UDP broadcast of received callsigns if FreeDV Reporter is enabled. (PR #1)
 

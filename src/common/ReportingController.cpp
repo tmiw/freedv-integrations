@@ -210,7 +210,7 @@ void ReportingController::updateRadioCallsign(std::string const& newCallsign)
     });
 }
 
-void ReportingController::reportCallsign(std::string const& callsign, char snr)
+void ReportingController::reportCallsign(std::string const& callsign, signed char snr)
 {
     enqueue_([&, callsign, snr]() {
         log_info("Reporting RX callsign %s (SNR %d) to FreeDV Reporter", callsign.c_str(), (int)snr);

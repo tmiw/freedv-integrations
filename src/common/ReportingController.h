@@ -51,7 +51,7 @@ public:
     void updateRadioCallsign(std::string const& newCallsign);
     void updateRadioGridSquare(std::string const& newGridSquare);
     void updateUserMessage(std::string const& newUserMessage);
-    void reportCallsign(std::string const& callsign, char snr);
+    void reportCallsign(std::string const& callsign, signed char snr);
     void showSelf();
     void hideSelf();
     void changeFrequency(uint64_t freqHz);
