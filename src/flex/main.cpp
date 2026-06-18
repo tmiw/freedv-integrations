@@ -132,12 +132,49 @@ int main(int argc, char** argv)
     
     // Check environment variables
     auto reportingMessageEnv = getenv("REPORTING_MESSAGE"); // NOLINT
-    if (reportingMessageEnv != nullptr)
+    if (reportingMessageEnv != nullptr && strlen(reportingMessageEnv) > 0)
     {
         log_info("Using FreeDV Reporter message '%s' from environment", reportingMessageEnv);
         stationUserMessage = reportingMessageEnv;
     }
+    auto reportingGridSquareEnv  = getenv("REPORTING_LOCATOR"); // NOLINT
+    if (reportingGridSquareEnv != nullptr && strlen(reportingGridSquareEnv) > 0)
+    {
+        log_info("Using FreeDV Reporter grid square '%s' from environment", reportingGridSquareEnv);
+        stationGridSquare = reportingGridSquareEnv;
+    }
+    auto volumeAdjustEnv = getenv("RX_VOLUME"); // NOLINT
+    if (volumeAdjustEnv && strlen(volumeAdjustEnv) > 0)
+    {
+        char* tmp = nullptr;
+        volumeAdjustmentDecibel = strtof(volumeAdjustEnv, &tmp);
+        if (tmp != (volumeAdjustEnv + strlen(volumeAdjustEnv)) || errno == ERANGE)
+        {
+            log_error("Provided level for RX_VOLUME environment variable must be a number.");
+        }
 
+        log_info("Adjusting receive audio volume by %f dB", volumeAdjustmentDecibel);
+    }
+    auto spotTimeoutEnv = getenv("SPOT_TIMEOUT"); // NOLINT
+    if (spotTimeoutEnv && strlen(spotTimeoutEnv) > 0)
+    {
+        char* tmp = nullptr;
+        errno = 0;
+        spotTimeoutSeconds = (int)strtol(spotTimeoutEnv, &tmp, 10);
+        if (tmp != (spotTimeoutEnv + strlen(spotTimeoutEnv)) || errno == ERANGE)
+        {
+            log_error("Provided timeout for SPOT_TIMEOUT environment variable must be a number.");
+        }
+
+        log_info("Adjusting spot timeout to %d seconds", spotTimeoutSeconds);
+    }
+    auto disableReportingEnv = getenv("DISABLE_REPORTING"); // NOLINT
+    if (disableReportingEnv)
+    {
+        log_info("Disabling FreeDV Reporter reporting.");
+        disableReporting = true;
+    }
+ 
     // Check command line options
     static struct option longOptions[] = {
         {"disable-reporting",     no_argument,       0,  'd' },

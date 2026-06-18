@@ -72,9 +72,13 @@ Operation in SmartSDR is similar to operating in regular voice modes with a few 
 
 Note that some of the above options can also be provided via environment variables:
 
-| Option                | Environment Variable  |
-|-----------------------|-----------------------|
-| `--reporting-message` | `REPORTING_MESSAGE`   |
+| Option                | Environment Variable                                    |
+|-----------------------|---------------------------------------------------------|
+| `--disable-reporting` | `DISABLE_REPORTING` (can be set to any non-empty value) |
+| `--reporting-locator` | `REPORTING_LOCATOR`                                     |
+| `--reporting-message` | `REPORTING_MESSAGE`                                     |
+| `--rx-volume`         | `RX_VOLUME`                                             |
+| `--spot-timeout`      | `SPOT_TIMEOUT`                                          |
 
 For example:
 
