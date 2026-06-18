@@ -1,4 +1,3 @@
 [submodule "src/backend"]
 	path = src/backend
 	url = https://github.com/tmiw/freedv-backend
-	branch = main
