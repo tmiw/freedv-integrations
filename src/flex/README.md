@@ -74,7 +74,7 @@ Note that some of the above options can also be provided via environment variabl
 
 | Option                | Environment Variable                                    |
 |-----------------------|---------------------------------------------------------|
-| `--disable-reporting` | `DISABLE_REPORTING` (can be set to any non-empty value) |
+| `--disable-reporting` | `DISABLE_REPORTING` (`true` or `1` to disable)          |
 | `--reporting-locator` | `REPORTING_LOCATOR`                                     |
 | `--reporting-message` | `REPORTING_MESSAGE`                                     |
 | `--rx-volume`         | `RX_VOLUME`                                             |

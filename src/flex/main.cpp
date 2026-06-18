@@ -41,6 +41,7 @@
 #include <atomic>
 #include <sstream>
 #include <cinttypes>
+#include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
 
@@ -169,7 +170,7 @@ int main(int argc, char** argv)
         log_info("Adjusting spot timeout to %d seconds", spotTimeoutSeconds);
     }
     auto disableReportingEnv = getenv("DISABLE_REPORTING"); // NOLINT
-    if (disableReportingEnv)
+    if (disableReportingEnv && strlen(disableReportingEnv) > 0 && (tolower(disableReportingEnv[0]) == 't' || disableReportingEnv[0] == '1'))
     {
         log_info("Disabling FreeDV Reporter reporting.");
         disableReporting = true;
