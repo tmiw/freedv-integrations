@@ -399,11 +399,11 @@ int main(int argc, char** argv)
     int rxCounter = 0;
     uint16_t meterMeterId = 0;
     ThreadedTimer rxNoCallsignReporting(100, [&](ThreadedTimer&) {
-        if (rxThread.getSync() && !reportController.isHidden())
+        if (rxThread.getSync())
         {
             rxCounter = (rxCounter + 1) % 10;
             auto snr = rxThread.getSnr();
-            if (rxCounter == 0)
+            if (rxCounter == 0 && !reportController.isHidden())
             {
                 reportController.reportCallsign("", snr);
             }
