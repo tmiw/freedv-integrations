@@ -403,7 +403,7 @@ int main(int argc, char** argv)
         {
             rxCounter = (rxCounter + 1) % 10;
             auto snr = rxThread.getSnr();
-            if (rxCounter == 0 && !reportController.isHidden())
+            if (rxCounter == 0 && !disableReporting && !reportController.isHidden())
             {
                 reportController.reportCallsign("", snr);
             }
@@ -412,12 +412,9 @@ int main(int argc, char** argv)
         else
         {
             vitaTask.sendMeter(meterMeterId, -99);
-        }        
+        }
     }, true);
-    if (!disableReporting)
-    {
-        rxNoCallsignReporting.start();
-    }
+    rxNoCallsignReporting.start();
     
     tcpTask.setWaveformSnrMeterIdentifiersFn([&](FlexTcpTask&, uint16_t meterId, void*) {
         meterMeterId = meterId;
