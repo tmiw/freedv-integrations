@@ -157,7 +157,6 @@ private:
     int sequenceNumber_;
     std::string ip_;
     int activeSlice_;
-    bool isLSB_;
     int txSlice_;
     bool isTransmitting_;
     bool isConnecting_;
