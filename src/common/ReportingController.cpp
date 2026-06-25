@@ -172,7 +172,12 @@ void ReportingController::updateReporterState_()
         freedvReporterConnection_ = new FreeDVReporter("", radioCallsign_, currentGridSquare_, getVersionString_(), rxOnly_, true);
         freedvReporterConnection_->connect();
         freedvReporterConnection_->updateMessage(userMessage_);
+    }
 
+    // UDP broadcast can happen unconditionally even without reporting enabled
+    // as there's no dependency on other reporting infrastructure.
+    if (udpReporterConnection_ == nullptr)
+    {
         log_info("Starting UDP broadcast of received callsigns");
         udpReporterConnection_ = new UdpReporter("224.0.0.1", 7177);
     }
@@ -198,6 +203,13 @@ void ReportingController::updateRadioCallsign(std::string const& newCallsign)
                 log_info("Disconnecting from FreeDV Reporter");
                 delete freedvReporterConnection_;
                 freedvReporterConnection_ = nullptr;
+            }
+            if (pskReporterConnection_ != nullptr)
+            {
+                log_info("Disconnecting from PSK Reporter");
+                pskReporterSendTimer_.stop();
+                delete pskReporterConnection_;
+                pskReporterConnection_ = nullptr;
             }
             if (udpReporterConnection_ != nullptr)
             {
@@ -243,6 +255,13 @@ void ReportingController::updateRadioGridSquare(std::string const& newGridSquare
             {
                 delete freedvReporterConnection_;
                 freedvReporterConnection_ = nullptr;
+            }
+            if (pskReporterConnection_ != nullptr)
+            {
+                log_info("Disconnecting from PSK Reporter");
+                pskReporterSendTimer_.stop();
+                delete pskReporterConnection_;
+                pskReporterConnection_ = nullptr;
             }
             if (udpReporterConnection_ != nullptr)
             {
