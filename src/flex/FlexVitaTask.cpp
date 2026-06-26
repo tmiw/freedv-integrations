@@ -66,6 +66,7 @@ FlexVitaTask::FlexVitaTask(std::shared_ptr<IRealtimeHelper> helper, float volume
     , samplesRequired_(0)
     , helper_(std::move(helper))
     , volumeAdjustmentScaleFactor_(expf(volumeAdjustmentDecibel/20.0f * logf(10.0f)))
+    , txMean_(0.0f)
 {
     packetArray_ = new vita_packet[MAX_VITA_PACKETS];
     assert(packetArray_ != nullptr);
@@ -524,6 +525,7 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
             unsigned long payload_length = ((htons(packet->length) * sizeof(uint32_t)) - VITA_PACKET_HEADER_SIZE);
 
             GenericFIFO<short>* inFifo = nullptr;
+            bool limitAudio = false;
             if (!(htonl(packet->stream_id) & 0x0001u)) 
             {
                 // Packet contains receive audio from radio.
@@ -540,6 +542,7 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 txStreamId_ = packet->stream_id;
                 //log_info("outputting on stream %08x, input on %08x", txStreamId_, packet->stream_id);
                 inFifo = getAudioInput_(true);
+                limitAudio = true;
             }
            
             if (inFifo == nullptr)
@@ -564,15 +567,29 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 temp.intVal = ntohl(packet->if_samples[i << 1]);
                 audioInputFloat[i++] = temp.floatVal;
             }
+            
+            constexpr auto ALPHA = 0.99f;
             for (i = 0; i < half_num_samples; i++)
             {
-                audioInput[i] = tanhf(audioInputFloat[i]) * FLOAT_TO_SHORT_MULTIPLIER;
+                if (limitAudio)
+                {
+                    // Adapted from https://dsp.stackexchange.com/questions/1395/peak-limiting-audio-compression-formula-needed
+                    // but with weighted exponential average instead to reduce RAM/CPU requirements.
+                    txMean_ = (ALPHA * txMean_) + (1.0f - ALPHA) * audioInputFloat[i];
+                    audioInput[i] = (2 * txMean_) * tanhf(audioInputFloat[i] / txMean_) * FLOAT_TO_SHORT_MULTIPLIER;
+                }
+                else
+                {
+                    audioInput[i] = audioInputFloat[i] * FLOAT_TO_SHORT_MULTIPLIER;
+                }
             }
+            
             if (!pendingEndTx_)
             {
                 inFifo->write(audioInput, half_num_samples); // audio pipeline will resample
             }
-	    samplesRequired_ = half_num_samples;
+            
+            samplesRequired_ = half_num_samples;
             sendAudioOut_();
             break;
         }

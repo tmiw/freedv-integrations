@@ -130,6 +130,9 @@ private:
     // Volume adjustment
     float volumeAdjustmentScaleFactor_;
     
+    // Sample limiting
+    float txMean_;
+    
     GenericFIFO<short>* getAudioInput_(bool tx);
     GenericFIFO<short>* getAudioOutput_(bool tx);
     
