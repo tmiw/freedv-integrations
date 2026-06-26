@@ -66,7 +66,6 @@ FlexVitaTask::FlexVitaTask(std::shared_ptr<IRealtimeHelper> helper, float volume
     , samplesRequired_(0)
     , helper_(std::move(helper))
     , volumeAdjustmentScaleFactor_(expf(volumeAdjustmentDecibel/20.0f * logf(10.0f)))
-    , txMean_(0.0f)
 {
     packetArray_ = new vita_packet[MAX_VITA_PACKETS];
     assert(packetArray_ != nullptr);
@@ -568,15 +567,17 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 audioInputFloat[i++] = temp.floatVal;
             }
             
-            constexpr auto ALPHA = 0.99f;
             for (i = 0; i < half_num_samples; i++)
             {
                 if (limitAudio)
                 {
-                    // Adapted from https://dsp.stackexchange.com/questions/1395/peak-limiting-audio-compression-formula-needed
-                    // but with weighted exponential average instead to reduce RAM/CPU requirements.
-                    txMean_ = (ALPHA * txMean_) + (1.0f - ALPHA) * std::abs(audioInputFloat[i]);
-                    audioInput[i] = (2 * txMean_) * std::tanh(audioInputFloat[i] / txMean_) * FLOAT_TO_SHORT_MULTIPLIER;
+                    // Scale inbound TX audio prior to feeding to the audio pipeline. On TX, we have 
+                    // our own AGC that should get this back within +/- 0.4 as needed.
+                    constexpr auto INBOUND_AUDIO_SCALING = 3.0f; // determined experimentally, |x| seems to be around 2.3-2.5 max on peaks
+                    auto tmp = (audioInputFloat[i] / INBOUND_AUDIO_SCALING) * FLOAT_TO_SHORT_MULTIPLIER;
+                    if (tmp <= -FLOAT_TO_SHORT_MULTIPLIER) tmp = -FLOAT_TO_SHORT_MULTIPLIER;
+                    else if (tmp >= FLOAT_TO_SHORT_MULTIPLIER) tmp = FLOAT_TO_SHORT_MULTIPLIER;
+                    audioInput[i] = (short)tmp;
                 }
                 else
                 {
