@@ -575,8 +575,8 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 {
                     // Adapted from https://dsp.stackexchange.com/questions/1395/peak-limiting-audio-compression-formula-needed
                     // but with weighted exponential average instead to reduce RAM/CPU requirements.
-                    txMean_ = (ALPHA * txMean_) + (1.0f - ALPHA) * absf(audioInputFloat[i]);
-                    audioInput[i] = (2 * txMean_) * tanhf(audioInputFloat[i] / txMean_) * FLOAT_TO_SHORT_MULTIPLIER;
+                    txMean_ = (ALPHA * txMean_) + (1.0f - ALPHA) * std::abs(audioInputFloat[i]);
+                    audioInput[i] = (2 * txMean_) * std::tanh(audioInputFloat[i] / txMean_) * FLOAT_TO_SHORT_MULTIPLIER;
                 }
                 else
                 {
