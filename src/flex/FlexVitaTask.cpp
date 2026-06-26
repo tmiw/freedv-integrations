@@ -524,6 +524,7 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
             unsigned long payload_length = ((htons(packet->length) * sizeof(uint32_t)) - VITA_PACKET_HEADER_SIZE);
 
             GenericFIFO<short>* inFifo = nullptr;
+            bool limitAudio = false;
             if (!(htonl(packet->stream_id) & 0x0001u)) 
             {
                 // Packet contains receive audio from radio.
@@ -540,6 +541,7 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 txStreamId_ = packet->stream_id;
                 //log_info("outputting on stream %08x, input on %08x", txStreamId_, packet->stream_id);
                 inFifo = getAudioInput_(true);
+                limitAudio = true;
             }
            
             if (inFifo == nullptr)
@@ -564,15 +566,31 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 temp.intVal = ntohl(packet->if_samples[i << 1]);
                 audioInputFloat[i++] = temp.floatVal;
             }
+            
             for (i = 0; i < half_num_samples; i++)
             {
-                audioInput[i] = tanhf(audioInputFloat[i]) * FLOAT_TO_SHORT_MULTIPLIER;
+                if (limitAudio)
+                {
+                    // Scale inbound TX audio prior to feeding to the audio pipeline. On TX, we have 
+                    // our own AGC that should get this back within +/- 0.4 as needed.
+                    constexpr auto INBOUND_AUDIO_SCALING = 3.0f; // determined experimentally, |x| seems to be around 2.3-2.5 max on peaks
+                    auto tmp = (audioInputFloat[i] / INBOUND_AUDIO_SCALING) * FLOAT_TO_SHORT_MULTIPLIER;
+                    if (tmp <= -FLOAT_TO_SHORT_MULTIPLIER) tmp = -FLOAT_TO_SHORT_MULTIPLIER;
+                    else if (tmp >= FLOAT_TO_SHORT_MULTIPLIER) tmp = FLOAT_TO_SHORT_MULTIPLIER;
+                    audioInput[i] = (short)tmp;
+                }
+                else
+                {
+                    audioInput[i] = audioInputFloat[i] * FLOAT_TO_SHORT_MULTIPLIER;
+                }
             }
+            
             if (!pendingEndTx_)
             {
                 inFifo->write(audioInput, half_num_samples); // audio pipeline will resample
             }
-	    samplesRequired_ = half_num_samples;
+            
+            samplesRequired_ = half_num_samples;
             sendAudioOut_();
             break;
         }

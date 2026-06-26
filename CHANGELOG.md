@@ -4,6 +4,7 @@
 
 1. Bugfixes:
     * Revert r8brain audio sampler for further audio quality improvement. (PR #3)
+    * Flex: Update audio limiting logic and restrict to only microphone audio. (PR #10)
     * Fix memory leaks in integrations. (PR #4)
     * Integrate improvements to EOO/callsign reporting. (PR #4, #5)
     * Flex: Enable SNR meter even if reporting is disabled. (PR #6)
