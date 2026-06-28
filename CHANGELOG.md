@@ -9,7 +9,7 @@
     * Integrate improvements to EOO/callsign reporting. (PR #4, #5)
     * Flex: Enable SNR meter even if reporting is disabled. (PR #6)
 2. Feature enhancements:
-    * Enable UDP broadcast of received callsigns if FreeDV Reporter is enabled. (PR #1)
+    * Enable UDP broadcast of received callsigns if FreeDV Reporter is enabled. (PR #1, #8)
     * Flex: allow some command line arguments to be passed via the environment. (PR #5)
 
 ## Earlier than v2.4.0
