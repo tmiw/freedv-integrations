@@ -49,6 +49,7 @@
 constexpr float SHORT_TO_FLOAT_DIVIDER = 32767.0;
 constexpr short FLOAT_TO_SHORT_MULTIPLIER = 32767;
 const float TX_SCALE_FACTOR = expf(3.0f/20.0f * logf(10.0f));
+const float MIC_SCALE_FACTOR = expf(-10.0f/20.0f * logf(10.0f));
 
 using namespace std::placeholders;
 
@@ -572,9 +573,9 @@ void FlexVitaTask::onReceiveVitaMessage_(vita_packet* packet, int length)
                 if (limitAudio)
                 {
                     // Scale inbound TX audio prior to feeding to the audio pipeline. On TX, we have 
-                    // our own AGC that should get this back within +/- 0.4 as needed.
-                    constexpr auto INBOUND_AUDIO_SCALING = 3.0f; // determined experimentally, |x| seems to be around 2.3-2.5 max on peaks
-                    auto tmp = (audioInputFloat[i] / INBOUND_AUDIO_SCALING) * FLOAT_TO_SHORT_MULTIPLIER;
+                    // our own AGC that should get this back within +/- 0.4 as needed. Per experimentation,
+                    // peaks should be approximately -10dB for best quality, so we scale samples by this amount.
+                    auto tmp = (audioInputFloat[i] * MIC_SCALE_FACTOR) * FLOAT_TO_SHORT_MULTIPLIER;
                     if (tmp <= -FLOAT_TO_SHORT_MULTIPLIER) tmp = -FLOAT_TO_SHORT_MULTIPLIER;
                     else if (tmp >= FLOAT_TO_SHORT_MULTIPLIER) tmp = FLOAT_TO_SHORT_MULTIPLIER;
                     audioInput[i] = (short)tmp;
