@@ -110,7 +110,6 @@ void FlexTcpTask::socketFinalCleanup_(bool)
 {
     // Report disconnection
     activeSlice_ = -1;
-    isLSB_ = false;
     txSlice_ = -1;
 
     responseHandlers_.clear();
@@ -154,10 +153,9 @@ void FlexTcpTask::initializeWaveform_()
 {
     // Send needed commands to initialize the waveform. This is from the reference
     // waveform implementation.
-    createWaveform_("FreeDV-USB", "FDVU", "DIGU");
-    createWaveform_("FreeDV-LSB", "FDVL", "DIGL");
+    createWaveform_("FreeDV", "FDV", "DIGU");
     
-    // subscribe to slice updates, needed to detect when we enter FDVU/FDVL mode
+    // subscribe to slice updates, needed to detect when we enter FDV mode
     sendRadioCommand_("sub slice all");
 
     // subscribe to GPS updates, needed for FreeDV Reporter
@@ -187,8 +185,7 @@ void FlexTcpTask::cleanupWaveform_()
     if (activeSlice_ >= 0)
     {
         ss << "slice set " << activeSlice_ << " mode=";
-        if (isLSB_) ss << "LSB";
-        else ss << "USB";
+        ss << "USB";
         
         sendRadioCommand_(ss.str().c_str(), [&](unsigned int, std::string const&) {
             // Recursively call ourselves again to actually remove the waveform
@@ -203,7 +200,7 @@ void FlexTcpTask::cleanupWaveform_()
     // We shouldn't really have to do this, but the radio seems to get confused by a client registering
     // more than one waveform, and only cleans up the last one created.
     // Even more interestingly, if we try to remove FreeDV-LSB as well, the radio will crash.
-    sendRadioCommand_("waveform remove FreeDV-USB", [&](unsigned int, std::string const&) {
+    sendRadioCommand_("waveform remove FreeDV", [&](unsigned int, std::string const&) {
         // We can disconnect after we've fully unregistered the waveforms.
         socketFinalCleanup_(false);
     });
@@ -401,7 +398,7 @@ void FlexTcpTask::processCommand_(std::string& command)
             auto mode = parameters.find("mode");
             if (mode != parameters.end())
             {
-                if (mode->second == "FDVU" || mode->second == "FDVL")
+                if (mode->second == "FDV")
                 {
                     if (sliceId != activeSlice_)
                     {
@@ -417,18 +414,18 @@ void FlexTcpTask::processCommand_(std::string& command)
                         else 
                         {
                             // Force current slice back to non-FreeDV mode if not TX slice
-                            log_warn("Attempted to activate FDVU/FDVL from a second slice (id = %d, active = %d)", sliceId, activeSlice_);
-                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. Non-TX slices have been set to USB and/or LSB.\"");
+                            log_warn("Attempted to activate FDV from a second slice (id = %d, active = %d)", sliceId, activeSlice_);
+                            sendRadioCommand_("message severity=warning \"Only one FDV slice can be active at a time. Non-TX slices have been set to USB and/or LSB.\"");
                             std::stringstream modeRevertCommand;
                             if (sliceId != txSlice_)
                             {
-                                modeRevertCommand << "slice set " << sliceId << " mode=" << (isLSB_ ? "LSB" : "USB");
+                                modeRevertCommand << "slice set " << sliceId << " mode=USB";
                                 sendRadioCommand_(modeRevertCommand.str());
                                 return;
                             }
                             else if (activeSlice_ != txSlice_)
                             {
-                                modeRevertCommand << "slice set " << activeSlice_ << " mode=" << (isLSB_ ? "LSB" : "USB");
+                                modeRevertCommand << "slice set " << activeSlice_ << " mode=USB";
                                 sendRadioCommand_(modeRevertCommand.str());
                             }
                         }
@@ -445,7 +442,6 @@ void FlexTcpTask::processCommand_(std::string& command)
                     }
                     
                     // Set the filter corresponding to the current mode.
-                    isLSB_ = mode->second == "FDVL";
                     setFilter_(currentWidth_.first, currentWidth_.second);
                 }
                 else if (sliceId == activeSlice_)
@@ -563,12 +559,6 @@ void FlexTcpTask::setFilter_(int low, int high)
     {
         int low_cut = low;
         int high_cut = high;
-
-        if (isLSB_)
-        {
-            low_cut = -high;
-            high_cut = -low;
-        }
 
         std::stringstream ss;
         ss << "filt " << activeSlice_ << " " << low_cut << " " << high_cut;
