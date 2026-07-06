@@ -366,6 +366,8 @@ void FlexTcpTask::processCommand_(std::string& command)
                 txSlice_ = sliceId;
             }
 
+            sliceToClientMap_[sliceId] = clientId;
+
             auto rfFrequency = parameters.find("RF_frequency");
             if (rfFrequency != parameters.end())
             {
@@ -467,35 +469,47 @@ void FlexTcpTask::processCommand_(std::string& command)
             auto parameters = FlexKeyValueParser::GetCommandParameters(ss);
             auto state = parameters.find("state");
             auto source = parameters.find("source");
-            
-            if (state != parameters.end() && state->second == "PTT_REQUESTED" &&
-                activeSlice_ == txSlice_ && source->second != "TUNE")
+            auto clientId = parameters.find("tx_client_handle");
+
+            if (clientId != parameters.end())
             {
-                // Going into transmit mode
-                log_info("Radio went into transmit");
-                isTransmitting_ = true;
-                
-                if (waveformTransmitFn_)
+                std::stringstream ss(clientId->second);
+                unsigned int clientIdInt = 0;
+
+                ss >> std::hex >> clientIdInt;
+                if (clientIdInt == sliceToClientMap_[txSlice_])
                 {
-                    waveformTransmitFn_(*this, TRANSMITTING, waveformTransmitState_);
-                }
-            }
-            else if (state != parameters.end() && state->second == "UNKEY_REQUESTED")
-            {
-                // Going back into receive, but not there yet. TX FIFO needs to be empty for 10ms
-                // for radio to switch back to READY.
-                log_info("Radio went out of transmit");
-                if (waveformTransmitFn_)
-                {
-                    waveformTransmitFn_(*this, ENDING_TX, waveformTransmitState_);
-                }
-            }
-            else if (state != parameters.end() && state->second == "READY")
-            {
-                isTransmitting_ = false;
-                if (waveformTransmitFn_)
-                {
-                    waveformTransmitFn_(*this, RECEIVING, waveformTransmitState_);
+                    // Correct multiFlex station is transmitting, set waveform to TX.
+                    if (state != parameters.end() && state->second == "PTT_REQUESTED" &&
+                        activeSlice_ == txSlice_ && source->second != "TUNE")
+                    {
+                        // Going into transmit mode
+                        log_info("Radio went into transmit");
+                        isTransmitting_ = true;
+                        
+                        if (waveformTransmitFn_)
+                        {
+                            waveformTransmitFn_(*this, TRANSMITTING, waveformTransmitState_);
+                        }
+                    }
+                    else if (state != parameters.end() && state->second == "UNKEY_REQUESTED")
+                    {
+                        // Going back into receive, but not there yet. TX FIFO needs to be empty for 10ms
+                        // for radio to switch back to READY.
+                        log_info("Radio went out of transmit");
+                        if (waveformTransmitFn_)
+                        {
+                            waveformTransmitFn_(*this, ENDING_TX, waveformTransmitState_);
+                        }
+                    }
+                    else if (state != parameters.end() && state->second == "READY")
+                    {
+                        isTransmitting_ = false;
+                        if (waveformTransmitFn_)
+                        {
+                            waveformTransmitFn_(*this, RECEIVING, waveformTransmitState_);
+                        }
+                    }
                 }
             }
         }
