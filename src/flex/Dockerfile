@@ -1,7 +1,7 @@
 FROM ubuntu:24.04 AS freedv-waveform
 
 # Install prerequisites to allow AppImages to run
-RUN apt-get update && apt-get install libexpat1
+RUN apt-get update && apt-get install libexpat1 ca-certificates
 
 COPY squashfs-root/ /app/
 
