@@ -169,7 +169,7 @@ void ReportingController::updateReporterState_()
     if (freedvReporterConnection_ == nullptr && !userHidden_ && !reportingDisabled_)
     {
         log_info("Connecting to FreeDV Reporter (callsign = %s, grid square = %s, version = %s)", radioCallsign_.c_str(), currentGridSquare_.c_str(), getVersionString_().c_str());
-        freedvReporterConnection_ = new FreeDVReporter("", radioCallsign_, currentGridSquare_, getVersionString_(), rxOnly_, true);
+        freedvReporterConnection_ = new FreeDVReporter("", radioCallsign_, currentGridSquare_, getVersionString_(), rxOnly_, true, true);
         freedvReporterConnection_->connect();
         freedvReporterConnection_->updateMessage(userMessage_);
     }
