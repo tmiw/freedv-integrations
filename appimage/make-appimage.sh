@@ -5,9 +5,11 @@ TARGET=${1:-all}
 if [[ "${TARGET}" == "freedv-flex" ]]; then
     export APPNAME="FreeDV-FlexRadio"
     export APPEXEC=../build_linux/src/flex/freedv-flex
+    export APPRUN=AppRun-FlexRadio.sh
 elif [[ "${TARGET}" == "freedv-ka9q" ]]; then
     export APPNAME="FreeDV-KA9Q"
     export APPEXEC=../build_linux/src/ka9q/freedv-ka9q
+    export APPRUN=AppRun-KA9Q.sh
 fi
 
 DESKTOP_FILE="$APPNAME.desktop"
@@ -39,21 +41,19 @@ fi
 ./linuxdeploy-${MACH_ARCH}.AppImage \
 --executable "$APPEXEC" \
 --appdir "$APPDIR" \
+--custom-apprun "$APPRUN" \
 --icon-file ../contrib/freedv256x256.png \
 --desktop-file $DESKTOP_FILE
 
+# Manually copy over /etc/ssl to APPDIR. Needed for OpenSSL to behave properly on non-Ubuntu
+# distros.
+mkdir -p "$APPDIR/etc/ssl/certs"
+cp -aL /etc/ssl/certs/* "$APPDIR/etc/ssl/certs"
+
 # Create the output
-if [[ "${TARGET}" == "all" ]]; then
-    ./linuxdeploy-${MACH_ARCH}.AppImage \
-        --appdir "$APPDIR" \
-        --plugin gtk \
-        --output appimage
-else
-    # GTK plugin not needed for integrations
-    ./linuxdeploy-${MACH_ARCH}.AppImage \
-        --appdir "$APPDIR" \
-        --output appimage
-fi
+./linuxdeploy-${MACH_ARCH}.AppImage \
+    --appdir "$APPDIR" \
+    --output appimage
 
 # Include version number in AppImage filename
 FREEDV_VERSION=`cat ../build_linux/freedv-version.txt`

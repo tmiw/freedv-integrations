@@ -411,7 +411,6 @@ int main(int argc, char** argv)
             vitaTask.sendMeter(meterMeterId, -99);
         }
     }, true);
-    rxNoCallsignReporting.start();
     
     tcpTask.setWaveformSnrMeterIdentifiersFn([&](FlexTcpTask&, uint16_t meterId, void*) {
         meterMeterId = meterId;
@@ -441,6 +440,7 @@ int main(int argc, char** argv)
         vitaTask.clearStreamIds();
         vitaTask.enableAudio(true);
         vitaTask.radioConnected(radioIp.c_str());
+        rxNoCallsignReporting.start();
     }, nullptr);
     tcpTask.setWaveformUserConnectedFn([&](FlexTcpTask&, void*) {
         reportController.showSelf();

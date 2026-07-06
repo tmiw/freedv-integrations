@@ -11,6 +11,7 @@
 2. Feature enhancements:
     * Enable UDP broadcast of received callsigns if FreeDV Reporter is enabled. (PR #1, #8)
     * Flex: allow some command line arguments to be passed via the environment. (PR #5)
+    * Connect to FreeDV Reporter using TLS. (PR #11)
 
 ## Earlier than v2.4.0
 
