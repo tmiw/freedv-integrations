@@ -434,7 +434,7 @@ void FlexTcpTask::processCommand_(std::string& command)
                                 sendRadioCommand_(modeRevertCommand.str());
                                 return;
                             }
-                            else if (activeSlice_ != -1 && !txSlices_[activeSlice_])
+                            else if (activeSlice_ != -1)
                             {
                                 modeRevertCommand << "slice set " << activeSlice_ << " mode=" << (isLSB_ ? "LSB" : "USB");
                                 sendRadioCommand_(modeRevertCommand.str());
