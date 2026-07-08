@@ -158,7 +158,6 @@ private:
     std::string ip_;
     int activeSlice_;
     bool isLSB_;
-    int txSlice_;
     bool isTransmitting_;
     bool isConnecting_;
     int vitaPort_;
@@ -166,6 +165,7 @@ private:
 
     std::map<int, std::string> sliceFrequencies_;
     std::map<int, bool> activeSlices_;
+    std::map<int, bool> txSlices_;
     std::map<int, unsigned int> sliceToClientMap_;
     
     using FilterPair_ = std::pair<int, int>; // Low/high cut in Hz.

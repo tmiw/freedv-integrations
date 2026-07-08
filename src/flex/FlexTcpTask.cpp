@@ -53,7 +53,6 @@ FlexTcpTask::FlexTcpTask(int vitaPort)
     , pingTimer_(10000, std::bind(&FlexTcpTask::pingRadio_, this, _1), true) /* pings radio every 10 seconds to verify connectivity */
     , sequenceNumber_(0)
     , activeSlice_(-1)
-    , txSlice_(-1)
     , isTransmitting_(false)
     , isConnecting_(false)
     , vitaPort_(vitaPort)
@@ -111,11 +110,18 @@ void FlexTcpTask::socketFinalCleanup_(bool)
     // Report disconnection
     activeSlice_ = -1;
     isLSB_ = false;
-    txSlice_ = -1;
 
+    // Clear maps
+    txSlices_.clear();
+    sliceFrequencies_.clear();
+    activeSlices_.clear();
+    sliceToClientMap_.clear();
+
+    // Clear handlers
     responseHandlers_.clear();
     inputBuffer_.clear();
 
+    // Stop timers
     commandHandlingTimer_.stop();
     pingTimer_.stop();
     isConnecting_ = false;
@@ -361,9 +367,9 @@ void FlexTcpTask::processCommand_(std::string& command)
             auto parameters = FlexKeyValueParser::GetCommandParameters(ss);
 
             auto tx = parameters.find("tx");
-            if (tx != parameters.end() && tx->second == "1")
+            if (tx != parameters.end())
             {
-                txSlice_ = sliceId;
+                txSlices_[sliceId] = tx->second == "1";
             }
 
             sliceToClientMap_[sliceId] = clientId;
@@ -422,13 +428,13 @@ void FlexTcpTask::processCommand_(std::string& command)
                             log_warn("Attempted to activate FDVU/FDVL from a second slice (id = %d, active = %d)", sliceId, activeSlice_);
                             sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. Non-TX slices have been set to USB and/or LSB.\"");
                             std::stringstream modeRevertCommand;
-                            if (sliceId != txSlice_)
+                            if (txSlices_[sliceId])
                             {
                                 modeRevertCommand << "slice set " << sliceId << " mode=" << (isLSB_ ? "LSB" : "USB");
                                 sendRadioCommand_(modeRevertCommand.str());
                                 return;
                             }
-                            else if (activeSlice_ != txSlice_)
+                            else if (activeSlice_ != -1 && !txSlices_[activeSlice_])
                             {
                                 modeRevertCommand << "slice set " << activeSlice_ << " mode=" << (isLSB_ ? "LSB" : "USB");
                                 sendRadioCommand_(modeRevertCommand.str());
@@ -477,11 +483,11 @@ void FlexTcpTask::processCommand_(std::string& command)
                 unsigned int clientIdInt = 0;
 
                 ss >> std::hex >> clientIdInt;
-                if (clientIdInt == sliceToClientMap_[txSlice_])
+                if (activeSlice_ != -1 && clientIdInt == sliceToClientMap_[activeSlice_])
                 {
                     // Correct multiFlex station is transmitting, set waveform to TX.
                     if (state != parameters.end() && state->second == "PTT_REQUESTED" &&
-                        activeSlice_ == txSlice_ && source->second != "TUNE")
+                        txSlices_[activeSlice_] && source->second != "TUNE")
                     {
                         // Going into transmit mode
                         log_info("Radio went into transmit");
