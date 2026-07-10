@@ -483,7 +483,7 @@ void FlexTcpTask::processCommand_(std::string& command)
                 unsigned int clientIdInt = 0;
 
                 ss >> std::hex >> clientIdInt;
-                if (activeSlice_ != -1 && clientIdInt == sliceToClientMap_[activeSlice_])
+                if (activeSlice_ != -1/* && clientIdInt == sliceToClientMap_[activeSlice_]*/)
                 {
                     // Correct multiFlex station is transmitting, set waveform to TX.
                     if (state != parameters.end() && state->second == "PTT_REQUESTED" &&
