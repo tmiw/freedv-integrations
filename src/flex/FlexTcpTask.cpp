@@ -430,25 +430,23 @@ void FlexTcpTask::processCommand_(std::string& command)
                         {
                             // Force current slice back to non-FreeDV mode if not TX slice
                             log_warn("Attempted to activate FDVU/FDVL from a second slice (id = %d, active = %d)", sliceId, currentFreeDVSlice);
-                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. Non-TX slices have been set to USB and/or LSB.\"");
+                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. The previous FreeDV slices have been set to USB and/or LSB.\"");
                             std::stringstream modeRevertCommand;
                             if (sliceContext_[sliceId].tx)
                             {
                                 std::string revertMode = (sliceContext_[sliceId].mode == "FDVU") ? "USB" : "LSB";
+                                sliceContext_[sliceId].mode = revertMode;
                                 modeRevertCommand << "slice set " << sliceId << " mode=" << revertMode;
-                                sendRadioCommand_(modeRevertCommand.str(), [this, revertMode, sliceId](unsigned int, const std::string&) {
-                                    sliceContext_[sliceId].mode = revertMode;
-                                });
+                                sendRadioCommand_(modeRevertCommand.str());
                                 return;
                             }
                             else if (currentFreeDVSlice != -1)
                             {
                                 int oldSlice = currentFreeDVSlice;
                                 std::string revertMode = (sliceContext_[currentFreeDVSlice].mode == "FDVU") ? "USB" : "LSB";
+                                sliceContext_[oldSlice].mode = revertMode;
                                 modeRevertCommand << "slice set " << currentFreeDVSlice << " mode=" << revertMode;
-                                sendRadioCommand_(modeRevertCommand.str(), [this, revertMode, oldSlice](unsigned int, const std::string&) {
-                                    sliceContext_[oldSlice].mode = revertMode;
-                                });
+                                sendRadioCommand_(modeRevertCommand.str());
                             }
                         }
 
