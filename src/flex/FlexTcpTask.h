@@ -162,9 +162,9 @@ private:
     std::shared_ptr<std::promise<void>> deregisterPromise_;   // so we don't need to wait a fixed amount of time during deinit
 
     struct SliceContext {
-        unsigned int clientId;
-        bool tx;
-        bool inUse;
+        unsigned int clientId = 0;
+        bool tx = false;
+        bool inUse = false;
         std::string frequencyHz;
         std::string mode;
     };

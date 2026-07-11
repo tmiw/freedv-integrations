@@ -345,7 +345,7 @@ void FlexTcpTask::processCommand_(std::string& command)
         unsigned int clientId = 0;
         std::string statusName;
         
-        ss >> std::hex >> clientId;
+        ss >> std::hex >> clientId; // Note: NOT the same as "client_handle". Use the latter for determining when to TX.
         char pipe = 0;
         ss >> pipe >> statusName;
         
@@ -360,15 +360,17 @@ void FlexTcpTask::processCommand_(std::string& command)
             {
                 // Create context if it's not already there.
                 SliceContext ctx;
-                ctx.clientId = clientId;
                 sliceContext_[sliceId] = ctx;
-            }
-            else
-            {
-                sliceContext_[sliceId].clientId = clientId;
             }
             
             auto parameters = FlexKeyValueParser::GetCommandParameters(ss);
+
+            auto clientIdParam = parameters.find("client_handle");
+            if (clientIdParam != parameters.end())
+            {
+                std::stringstream tmpString(clientIdParam->second);
+                tmpString >> std::hex >> sliceContext_[sliceId].clientId;
+            }
 
             auto tx = parameters.find("tx");
             if (tx != parameters.end())
@@ -430,7 +432,7 @@ void FlexTcpTask::processCommand_(std::string& command)
                         {
                             // Force current slice back to non-FreeDV mode if not TX slice
                             log_warn("Attempted to activate FDVU/FDVL from a second slice (id = %d, active = %d)", sliceId, currentFreeDVSlice);
-                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. The previous FreeDV slices have been set to USB and/or LSB.\"");
+                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. Other FreeDV slices have been set to USB and/or LSB.\"");
                             std::stringstream modeRevertCommand;
                             if (sliceContext_[sliceId].tx)
                             {
