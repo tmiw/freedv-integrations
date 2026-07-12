@@ -52,8 +52,6 @@ FlexTcpTask::FlexTcpTask(int vitaPort)
     : commandHandlingTimer_(500, std::bind(&FlexTcpTask::commandResponseTimeout_, this, _1), true) /* time out waiting for command response after 0.5 second */
     , pingTimer_(10000, std::bind(&FlexTcpTask::pingRadio_, this, _1), true) /* pings radio every 10 seconds to verify connectivity */
     , sequenceNumber_(0)
-    , activeSlice_(-1)
-    , txSlice_(-1)
     , isTransmitting_(false)
     , isConnecting_(false)
     , vitaPort_(vitaPort)
@@ -108,14 +106,14 @@ void FlexTcpTask::onReceive_(char* buf, int length)
 
 void FlexTcpTask::socketFinalCleanup_(bool)
 {
-    // Report disconnection
-    activeSlice_ = -1;
-    isLSB_ = false;
-    txSlice_ = -1;
+    // Clear context
+    sliceContext_.clear();
 
+    // Clear handlers
     responseHandlers_.clear();
     inputBuffer_.clear();
 
+    // Stop timers
     commandHandlingTimer_.stop();
     pingTimer_.stop();
     isConnecting_ = false;
@@ -184,16 +182,16 @@ void FlexTcpTask::cleanupWaveform_()
     std::stringstream ss;
     
     // Change mode back to something that exists.
-    if (activeSlice_ >= 0)
+    int fdvSlice = getFreeDVSlice_();
+    if (fdvSlice >= 0)
     {
-        ss << "slice set " << activeSlice_ << " mode=";
-        if (isLSB_) ss << "LSB";
-        else ss << "USB";
+        std::string newMode = sliceContext_[fdvSlice].mode == "FDVL" ? "LSB" : "USB";
+        ss << "slice set " << fdvSlice << " mode=" << newMode;
         
-        sendRadioCommand_(ss.str().c_str(), [&](unsigned int, std::string const&) {
+        sendRadioCommand_(ss.str().c_str(), [this, newMode, fdvSlice](unsigned int, std::string const&) {
             // Recursively call ourselves again to actually remove the waveform
             // once we get a response for this command.
-            activeSlice_ = -1;
+            sliceContext_[fdvSlice].mode = newMode;
             cleanupWaveform_();
         });
         
@@ -347,7 +345,7 @@ void FlexTcpTask::processCommand_(std::string& command)
         unsigned int clientId = 0;
         std::string statusName;
         
-        ss >> std::hex >> clientId;
+        ss >> std::hex >> clientId; // Note: NOT the same as "client_handle". Use the latter for determining when to TX.
         char pipe = 0;
         ss >> pipe >> statusName;
         
@@ -357,22 +355,36 @@ void FlexTcpTask::processCommand_(std::string& command)
             
             int sliceId = 0;
             ss >> std::dec >> sliceId;
+
+            if (sliceContext_.find(sliceId) == sliceContext_.end())
+            {
+                // Create context if it's not already there.
+                SliceContext ctx;
+                sliceContext_[sliceId] = ctx;
+            }
             
             auto parameters = FlexKeyValueParser::GetCommandParameters(ss);
 
-            auto tx = parameters.find("tx");
-            if (tx != parameters.end() && tx->second == "1")
+            auto clientIdParam = parameters.find("client_handle");
+            if (clientIdParam != parameters.end())
             {
-                txSlice_ = sliceId;
+                std::stringstream tmpString(clientIdParam->second);
+                tmpString >> std::hex >> sliceContext_[sliceId].clientId;
+            }
+
+            auto tx = parameters.find("tx");
+            if (tx != parameters.end())
+            {
+                sliceContext_[sliceId].tx = tx->second == "1";
             }
 
             auto rfFrequency = parameters.find("RF_frequency");
             if (rfFrequency != parameters.end())
             {
-                sliceFrequencies_[sliceId] = rfFrequency->second;
+                sliceContext_[sliceId].frequencyHz = rfFrequency->second;
 
                 // Report new frequency to any listening reporters
-                if (activeSlice_ == sliceId)
+                if (getFreeDVSlice_() == sliceId)
                 {
                     // Frequency reported by Flex is in MHz but reporters expect
                     // it in Hz.
@@ -387,27 +399,29 @@ void FlexTcpTask::processCommand_(std::string& command)
             auto isActive = parameters.find("in_use");
             if (isActive != parameters.end())
             {
-                activeSlices_[sliceId] = isActive->second == "1" ? true : false;
-                if (sliceId == activeSlice_ && !activeSlices_[sliceId])
+                bool newInUse = isActive->second == "1" ? true : false;
+                if (sliceId == getFreeDVSlice_() && !newInUse)
                 {
                     if (waveformUserDisconnectedFn_)
                     {
                         waveformUserDisconnectedFn_(*this, waveformUserDisconnectedState_);
                     }
-                    activeSlice_ = -1;
                 }
+                sliceContext_[sliceId].inUse = newInUse;
             }
             
             auto mode = parameters.find("mode");
             if (mode != parameters.end())
             {
+                int currentFreeDVSlice = getFreeDVSlice_();
+                sliceContext_[sliceId].mode = mode->second;
                 if (mode->second == "FDVU" || mode->second == "FDVL")
                 {
-                    if (sliceId != activeSlice_)
+                    if (sliceId != currentFreeDVSlice)
                     {
                         log_info("Switching slice %d to FreeDV mode", sliceId);
                         
-                        if (activeSlice_ == -1)
+                        if (currentFreeDVSlice == -1)
                         {
                             if (waveformUserConnectedFn_)
                             {
@@ -417,27 +431,29 @@ void FlexTcpTask::processCommand_(std::string& command)
                         else 
                         {
                             // Force current slice back to non-FreeDV mode if not TX slice
-                            log_warn("Attempted to activate FDVU/FDVL from a second slice (id = %d, active = %d)", sliceId, activeSlice_);
-                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. Non-TX slices have been set to USB and/or LSB.\"");
+                            log_warn("Attempted to activate FDVU/FDVL from a second slice (id = %d, active = %d)", sliceId, currentFreeDVSlice);
+                            sendRadioCommand_("message severity=warning \"Only one FDVU or FDVL slice can be active at a time. Other FreeDV slices have been set to USB and/or LSB.\"");
                             std::stringstream modeRevertCommand;
-                            if (sliceId != txSlice_)
+                            if (!sliceContext_[sliceId].tx)
                             {
-                                modeRevertCommand << "slice set " << sliceId << " mode=" << (isLSB_ ? "LSB" : "USB");
+                                std::string revertMode = (sliceContext_[sliceId].mode == "FDVU") ? "USB" : "LSB";
+                                sliceContext_[sliceId].mode = revertMode;
+                                modeRevertCommand << "slice set " << sliceId << " mode=" << revertMode;
                                 sendRadioCommand_(modeRevertCommand.str());
                                 return;
                             }
-                            else if (activeSlice_ != txSlice_)
+                            else if (currentFreeDVSlice != -1)
                             {
-                                modeRevertCommand << "slice set " << activeSlice_ << " mode=" << (isLSB_ ? "LSB" : "USB");
+                                int oldSlice = currentFreeDVSlice;
+                                std::string revertMode = (sliceContext_[currentFreeDVSlice].mode == "FDVU") ? "USB" : "LSB";
+                                sliceContext_[oldSlice].mode = revertMode;
+                                modeRevertCommand << "slice set " << currentFreeDVSlice << " mode=" << revertMode;
                                 sendRadioCommand_(modeRevertCommand.str());
                             }
                         }
 
-                        // User wants to use the waveform.
-                        activeSlice_ = sliceId;
-
                         // Ensure that we connect to any reporting services as appropriate
-                        uint64_t freqHz = atof(sliceFrequencies_[activeSlice_].c_str()) * 1000000;
+                        uint64_t freqHz = atof(sliceContext_[sliceId].frequencyHz.c_str()) * 1000000;
                         if (waveformFreqChangeFn_)
                         {
                             waveformFreqChangeFn_(*this, freqHz, waveformFreqChangeState_);
@@ -445,13 +461,10 @@ void FlexTcpTask::processCommand_(std::string& command)
                     }
                     
                     // Set the filter corresponding to the current mode.
-                    isLSB_ = mode->second == "FDVL";
                     setFilter_(currentWidth_.first, currentWidth_.second);
                 }
-                else if (sliceId == activeSlice_)
+                else if (sliceId == currentFreeDVSlice)
                 {
-                    activeSlice_ = -1;
-
                     // Ensure that we disconnect from any reporting services as appropriate
                     if (waveformUserDisconnectedFn_)
                     {
@@ -467,35 +480,48 @@ void FlexTcpTask::processCommand_(std::string& command)
             auto parameters = FlexKeyValueParser::GetCommandParameters(ss);
             auto state = parameters.find("state");
             auto source = parameters.find("source");
-            
-            if (state != parameters.end() && state->second == "PTT_REQUESTED" &&
-                activeSlice_ == txSlice_ && source->second != "TUNE")
+            auto clientId = parameters.find("tx_client_handle");
+
+            if (clientId != parameters.end())
             {
-                // Going into transmit mode
-                log_info("Radio went into transmit");
-                isTransmitting_ = true;
-                
-                if (waveformTransmitFn_)
+                std::stringstream ss(clientId->second);
+                unsigned int clientIdInt = 0;
+
+                ss >> std::hex >> clientIdInt;
+                int currentFreeDVSlice = getFreeDVSlice_();
+                if (currentFreeDVSlice != -1 && clientIdInt == sliceContext_[currentFreeDVSlice].clientId)
                 {
-                    waveformTransmitFn_(*this, TRANSMITTING, waveformTransmitState_);
-                }
-            }
-            else if (state != parameters.end() && state->second == "UNKEY_REQUESTED")
-            {
-                // Going back into receive, but not there yet. TX FIFO needs to be empty for 10ms
-                // for radio to switch back to READY.
-                log_info("Radio went out of transmit");
-                if (waveformTransmitFn_)
-                {
-                    waveformTransmitFn_(*this, ENDING_TX, waveformTransmitState_);
-                }
-            }
-            else if (state != parameters.end() && state->second == "READY")
-            {
-                isTransmitting_ = false;
-                if (waveformTransmitFn_)
-                {
-                    waveformTransmitFn_(*this, RECEIVING, waveformTransmitState_);
+                    // Correct multiFlex station is transmitting, set waveform to TX.
+                    if (state != parameters.end() && state->second == "PTT_REQUESTED" &&
+                        sliceContext_[currentFreeDVSlice].tx && source->second != "TUNE")
+                    {
+                        // Going into transmit mode
+                        log_info("Radio went into transmit");
+                        isTransmitting_ = true;
+                        
+                        if (waveformTransmitFn_)
+                        {
+                            waveformTransmitFn_(*this, TRANSMITTING, waveformTransmitState_);
+                        }
+                    }
+                    else if (state != parameters.end() && state->second == "UNKEY_REQUESTED")
+                    {
+                        // Going back into receive, but not there yet. TX FIFO needs to be empty for 10ms
+                        // for radio to switch back to READY.
+                        log_info("Radio went out of transmit");
+                        if (waveformTransmitFn_)
+                        {
+                            waveformTransmitFn_(*this, ENDING_TX, waveformTransmitState_);
+                        }
+                    }
+                    else if (state != parameters.end() && state->second == "READY")
+                    {
+                        isTransmitting_ = false;
+                        if (waveformTransmitFn_)
+                        {
+                            waveformTransmitFn_(*this, RECEIVING, waveformTransmitState_);
+                        }
+                    }
                 }
             }
         }
@@ -543,10 +569,11 @@ void FlexTcpTask::processCommand_(std::string& command)
 void FlexTcpTask::addSpot(std::string const& callsign, int snr, int timeoutSeconds)
 {
     enqueue_([=]() {
-        if (activeSlice_ >= 0)
+        int currentFreeDVSlice = getFreeDVSlice_();
+        if (currentFreeDVSlice >= 0)
         {
             std::stringstream ss;
-            ss << "spot add rx_freq=" << sliceFrequencies_[activeSlice_] << " callsign=" << callsign << " mode=FREEDV source=FreeDV comment=" << snr << "dB timestamp=" << time(NULL);
+            ss << "spot add rx_freq=" << sliceContext_[currentFreeDVSlice].frequencyHz << " callsign=" << callsign << " mode=FREEDV source=FreeDV comment=" << snr << "dB timestamp=" << time(NULL);
             
             if (timeoutSeconds > 0)
             {
@@ -559,19 +586,20 @@ void FlexTcpTask::addSpot(std::string const& callsign, int snr, int timeoutSecon
 
 void FlexTcpTask::setFilter_(int low, int high)
 {
-    if (activeSlice_ >= 0)
+    int currentFreeDVSlice = getFreeDVSlice_();
+    if (currentFreeDVSlice >= 0)
     {
         int low_cut = low;
         int high_cut = high;
 
-        if (isLSB_)
+        if (sliceContext_[currentFreeDVSlice].mode == "FDVL")
         {
             low_cut = -high;
             high_cut = -low;
         }
 
         std::stringstream ss;
-        ss << "filt " << activeSlice_ << " " << low_cut << " " << high_cut;
+        ss << "filt " << currentFreeDVSlice << " " << low_cut << " " << high_cut;
         sendRadioCommand_(ss.str());
     }
 }
@@ -585,4 +613,17 @@ void FlexTcpTask::pingRadio_(ThreadedTimer&)
         // the send logic will take care of triggering reconnection.
         sendRadioCommand_("ping");
     });
+}
+
+int FlexTcpTask::getFreeDVSlice_()
+{
+    for (auto& kvp : sliceContext_)
+    {
+        if (kvp.second.inUse && (kvp.second.mode == "FDVU" || kvp.second.mode == "FDVL"))
+        {
+            return kvp.first;
+        }
+    }
+
+    return -1;
 }

@@ -156,16 +156,21 @@ private:
     ThreadedTimer pingTimer_;
     int sequenceNumber_;
     std::string ip_;
-    int activeSlice_;
-    bool isLSB_;
-    int txSlice_;
     bool isTransmitting_;
     bool isConnecting_;
     int vitaPort_;
     std::shared_ptr<std::promise<void>> deregisterPromise_;   // so we don't need to wait a fixed amount of time during deinit
 
-    std::map<int, std::string> sliceFrequencies_;
-    std::map<int, bool> activeSlices_;
+    struct SliceContext {
+        unsigned int clientId = 0;
+        bool tx = false;
+        bool inUse = false;
+        std::string frequencyHz;
+        std::string mode;
+    };
+    std::map<int, SliceContext> sliceContext_;
+
+    int getFreeDVSlice_();
     
     using FilterPair_ = std::pair<int, int>; // Low/high cut in Hz.
     std::vector<FilterPair_> filterWidths_;
