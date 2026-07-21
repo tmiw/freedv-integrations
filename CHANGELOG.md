@@ -13,6 +13,8 @@
     * Enable UDP broadcast of received callsigns if FreeDV Reporter is enabled. (PR #1, #8)
     * Flex: allow some command line arguments to be passed via the environment. (PR #5)
     * Connect to FreeDV Reporter using TLS. (PR #11)
+3. Build system:
+    * Require C++20 to build integrations. (PR #14)
 
 ## Earlier than v2.4.0
 
