@@ -300,7 +300,7 @@ int main(int argc, char** argv)
     log_info("Creating RADE object");
     char modelFile[1];
     modelFile[0] = 0;
-    struct rade* radeObj = rade_open(modelFile, RADE_USE_C_ENCODER | RADE_USE_C_DECODER | RADE_VERBOSE_0);
+    struct rade* radeObj = rade_open(modelFile, RADE_USE_C_ENCODER | RADE_USE_C_DECODER | RADE_MODE_V2 | RADE_VERBOSE_0);
     assert(radeObj != nullptr);
     
     log_info("Creating RADE text object");
@@ -420,15 +420,10 @@ int main(int argc, char** argv)
         // Add callsign to EOO so others can report us
         log_info("Setting EOO bits");
         int nsyms = rade_n_eoo_bits(radeObj);
-        float* eooSyms = new float[nsyms];
-        assert(eooSyms);
                 
-        rade_text_generate_tx_string(radeTextPtr, callsign.c_str(), callsign.size(), eooSyms, nsyms);
-        rade_tx_set_eoo_bits(radeObj, eooSyms);
+        rade_text_generate_tx_string(radeTextPtr, callsign.c_str(), callsign.size());
 
         reportController.updateRadioCallsign(callsign);
-
-        delete[] eooSyms; // RADE stores the EOO itself so no need to keep it around
     }, nullptr);
     tcpTask.setWaveformGridSquareUpdateFn([&](FlexTcpTask&, std::string const& gridSquare, void*) {
         if (stationGridSquare == "")
