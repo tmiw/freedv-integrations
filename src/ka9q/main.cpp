@@ -117,6 +117,7 @@ void printUsage(char* appName)
     log_info("    -l|--reporting-locator: The grid square/locator to use for FreeDV Reporter reporting.");
     log_info("    -f|--reporting-frequency-hz: The frequency to report for FreeDV Reporter reporting, in hertz. (Example: 14236000 for 14.236MHz)");
     log_info("    -m|--reporting-message: Optional message to report for the Message column on FreeDV Reporter.");
+    log_info("    --rx-features: Output RX features to disk for testing.");
     log_info("    -h|--help: This help message.");
     log_info("    -v|--version: Prints the application version and exits.");
     log_info("");
@@ -144,6 +145,7 @@ int main(int argc, char** argv)
         {"reporting-locator",     required_argument, 0,  'l' },
         {"reporting-freq-hz",     required_argument, 0,  'f' },
         {"reporting-message",     required_argument, 0,  'm' },
+        {"rx-features",           required_argument, 0,  'r' },
         {"help",                  no_argument,       0,  'h' },
         {"version",               no_argument,       0,  'v' },
         {0,         0,                 0,  0 }
@@ -156,6 +158,12 @@ int main(int argc, char** argv)
     {
         switch(c)
         {
+            case 'r':
+            {
+                utRxFeatureFile = optarg;
+                log_info("Writing RX features to %s", optarg);
+                break;
+            }
             case 'i':
             case 'o':
             {
