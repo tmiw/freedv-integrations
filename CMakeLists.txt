@@ -35,7 +35,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(FreeDV_VERSION ${PROJECT_VERSION})
-set(FREEDV_VERSION_TAG "dev") # to indicate non-official release
+#set(FREEDV_VERSION_TAG "dev") # to indicate non-official release
 
 #       
 # Find the git hash if this is a working copy.

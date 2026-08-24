@@ -1,6 +1,6 @@
 # freedv-integrations Changelog
 
-## v2.4.0 TBD 2026
+## v2.4.0 August 2026
 
 1. Bugfixes:
     * Revert r8brain audio sampler for further audio quality improvement. (PR #3)
