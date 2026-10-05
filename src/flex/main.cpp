@@ -76,6 +76,7 @@ int spotTimeoutSeconds = 600; // 10 minute default
 
 std::string utRxFeatureFile;
 std::string utTxFeatureFile;
+std::atomic<bool> receivedCallsign;
 
 void OnSignalExit(int)
 {
@@ -98,6 +99,8 @@ void ReportReceivedCallsign(rade_text_t, const char *txt_ptr, int length, void *
     {
         std::string callsign(txt_ptr, length);
         auto snr = reportObj->rxThread->getSnr();
+
+        receivedCallsign.store(true, std::memory_order_release);
 
         if (reportObj->reporter != nullptr)
         {
@@ -400,7 +403,7 @@ int main(int argc, char** argv)
         {
             rxCounter = (rxCounter + 1) % 10;
             auto snr = rxThread.getSnr();
-            if (rxCounter == 0 && !disableReporting && !reportController.isHidden())
+            if (rxCounter == 0 && !disableReporting && !reportController.isHidden() && !receivedCallsign.load(std::memory_order_acquire))
             {
                 reportController.reportCallsign("", snr);
             }
@@ -408,6 +411,7 @@ int main(int argc, char** argv)
         }
         else
         {
+            receivedCallsign.store(false, std::memory_order_release);
             vitaTask.sendMeter(meterMeterId, -99);
         }
     }, true);
