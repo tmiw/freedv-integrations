@@ -47,7 +47,7 @@ std::string ReportingController::getVersionString_()
     return ss.str();
 }
 #define SOFTWARE_GRID_SQUARE "AA00"
-#define MODE_STRING "RADEV1"
+#define MODE_STRING "RADEV2"
 
 #define PSKREPORTER_REPORT_INTERVAL_MS (5*60*1000)
 
