@@ -564,7 +564,7 @@ void FlexTcpTask::processCommand_(std::string& command)
 
 void FlexTcpTask::addSpot(std::string const& callsign, int snr, int timeoutSeconds)
 {
-    enqueue_([=]() {
+    enqueue_([this, callsign, snr, timeoutSeconds]() {
         int currentFreeDVSlice = getFreeDVSlice_();
         if (currentFreeDVSlice >= 0)
         {
